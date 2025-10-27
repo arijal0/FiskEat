@@ -24,16 +24,13 @@ FiskEat solves the problem of students not having digital access to campus dinin
 
 ### Backend
 - **Python 3.x** with Flask
-- **Firebase Admin SDK** for Firestore database
-- **Sodexo API** for menu data
+- **Sodexo API** for dynamic menu data fetching
+- **pytest** for comprehensive testing
 - **Google Gemini API** for AI chatbot (planned)
 
 ### Frontend (Planned)
 - **React** with modern hooks
 - **Responsive design** for mobile-first experience
-
-### Database
-- **Google Firestore** (NoSQL)
 
 ## 📁 Project Structure
 
@@ -41,12 +38,11 @@ FiskEat solves the problem of students not having digital access to campus dinin
 fiskeat/
 ├── backend/
 │   ├── app.py                    # Main Flask application
+│   ├── test_app.py              # Comprehensive test suite
 │   ├── requirements.txt          # Python dependencies
 │   ├── .env                      # Environment variables (not in git)
-│   ├── .env.example             # Example environment variables
-│   ├── serviceAccountKey.json   # Firebase credentials (not in git)
 │   └── scripts/
-│       └── fetch_menu.py        # Daily menu fetcher script
+│       └── fetch_menu.py        # Legacy script (no longer needed)
 ├── frontend/                     # React app (to be created)
 ├── .gitignore
 └── README.md
@@ -56,7 +52,6 @@ fiskeat/
 
 ### Prerequisites
 - Python 3.8 or higher
-- Firebase project with Firestore enabled
 - Sodexo API access
 
 ### Backend Setup
@@ -79,34 +74,43 @@ fiskeat/
    ```
 
 4. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your actual credentials
+   Create a `.env` file in the `backend/` directory:
+   ```env
+   SODEXO_API_KEY=your_api_key_here
+   SODEXO_LOCATION_ID=73110001  # Optional, defaults to this value
+   SODEXO_SITE_ID=22135          # Optional, defaults to this value
+   PORT=5001                     # Optional, defaults to 5001
+   FLASK_ENV=development         # Optional
    ```
 
-5. **Add Firebase credentials**
-   - Download your `serviceAccountKey.json` from Firebase Console
-   - Place it in the `backend/` directory
-
-6. **Fetch initial menu data**
-   ```bash
-   python scripts/fetch_menu.py
-   ```
-
-7. **Start the server**
+5. **Start the server**
    ```bash
    python app.py
    ```
 
-   The API will be available at `http://localhost:5000`
+   The API will be available at `http://localhost:5001`
 
 ## 📡 API Endpoints
 
 ### GET `/`
 Health check endpoint
 
+**Response:**
+```json
+{
+  "message": "FiskEat API is running!",
+  "version": "2.0.0",
+  "description": "Dynamic menu fetching - no database required",
+  "endpoints": {
+    "menu_today": "/api/menu/today",
+    "menu_by_date": "/api/menu/<date>",
+    "food_item": "/api/food/<item_id>"
+  }
+}
+```
+
 ### GET `/api/menu/today`
-Get today's menu
+Get today's menu (fetched dynamically from Sodexo API)
 
 **Response:**
 ```json
@@ -115,7 +119,35 @@ Get today's menu
   "date": "2025-10-03",
   "menu": {
     "date": "2025-10-03",
-    "meals": [...]
+    "meals": [
+      {
+        "name": "Breakfast",
+        "stations": [
+          {
+            "name": "Grill",
+            "items": [
+              {
+                "id": "12345",
+                "name": "Scrambled Eggs",
+                "description": "Fresh scrambled eggs",
+                "ingredients": "Eggs, milk, butter",
+                "allergens": ["Eggs", "Milk"],
+                "isVegan": false,
+                "isVegetarian": true,
+                "nutrition": {
+                  "calories": "250",
+                  "protein": "15",
+                  "fat": "20",
+                  "carbohydrates": "5",
+                  "sugar": "1",
+                  "sodium": "400"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -123,58 +155,28 @@ Get today's menu
 ### GET `/api/menu/<date>`
 Get menu for a specific date (format: YYYY-MM-DD)
 
+**Example:**
+```bash
+GET /api/menu/2025-10-15
+```
+
 ### GET `/api/food/<item_id>`
-Get detailed information about a specific food item
+Get detailed information about a specific food item from today's menu
 
-### GET `/api/menu/available-dates`
-Get list of all dates with available menus
-
-## 🗄️ Database Schema
-
-### Collection: `menus`
-```javascript
-{
-  date: "2025-10-03",
-  meals: [
-    {
-      name: "Breakfast",
-      stations: [
-        {
-          name: "Grill",
-          items: [
-            {
-              id: "12345",
-              name: "Scrambled Eggs",
-              isVegan: false,
-              isVegetarian: true
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
+**Example:**
+```bash
+GET /api/food/12345
 ```
 
-### Collection: `foodItems`
-```javascript
-{
-  name: "Scrambled Eggs",
-  description: "...",
-  ingredients: "...",
-  allergens: ["Eggs", "Milk"],
-  isVegan: false,
-  isVegetarian: true,
-  nutrition: {
-    calories: "140",
-    protein: "12g",
-    fat: "9g",
-    carbohydrates: "2g",
-    sugar: "1g",
-    sodium: "180mg"
-  }
-}
-```
+## 🔄 Architecture
+
+**No Database Required!** The application uses dynamic API calls to fetch menu data directly from Sodexo's API. This means:
+- ✅ Always up-to-date menu information
+- ✅ No database maintenance required
+- ✅ Simpler architecture
+- ✅ No data persistence needed
+
+Each API request fetches the menu data fresh from Sodexo, transforms it into a clean format, and returns it to the client.
 
 ## 📅 Development Timeline
 
@@ -187,17 +189,38 @@ Get list of all dates with available menus
 
 ## 🧪 Testing
 
+### Running Tests
+
+```bash
+# Install test dependencies (already in requirements.txt)
+pip install -r requirements.txt
+
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=app --cov-report=html
+
+# Run with verbose output
+pytest -v
+```
+
+### Manual Testing
+
 Test the API using curl or a tool like Postman:
 
 ```bash
+# Health check
+curl http://localhost:5001/
+
 # Get today's menu
-curl http://localhost:5000/api/menu/today
+curl http://localhost:5001/api/menu/today
 
 # Get specific date menu
-curl http://localhost:5000/api/menu/2025-10-03
+curl http://localhost:5001/api/menu/2025-10-03
 
-# Get available dates
-curl http://localhost:5000/api/menu/available-dates
+# Get food item details
+curl http://localhost:5001/api/food/12345
 ```
 
 ## 🤝 Contributing
