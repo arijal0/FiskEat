@@ -4,11 +4,10 @@ Main application file
 """
 import os
 from datetime import datetime
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-import firebase_admin
-from firebase_admin import credentials, firestore
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -17,13 +16,100 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
 
-# Initialize Firebase
-if not firebase_admin._apps:
-    cred_path = os.getenv('FIREBASE_CREDENTIALS_PATH', './serviceAccountKey.json')
-    cred = credentials.Certificate(cred_path)
-    firebase_admin.initialize_app(cred)
 
-db = firestore.client()
+def fetch_menu_from_sodexo(date_str=None):
+    """
+    Fetch menu from Sodexo API and transform it into a clean format
+    
+    Args:
+        date_str: Date in YYYY-MM-DD format. If None, uses today's date.
+    
+    Returns:
+        Transformed menu data dictionary or None if error
+    """
+    try:
+        # Get configuration from environment variables
+        api_key = os.getenv('SODEXO_API_KEY')
+        location_id = os.getenv('SODEXO_LOCATION_ID', '73110001')
+        site_id = os.getenv('SODEXO_SITE_ID', '22135')
+        
+        # Get today's date if not provided
+        if date_str is None:
+            today = datetime.now()
+            date_str = today.strftime('%Y-%m-%d')
+        
+        # Build the API URL
+        url = f"https://api-prd.sodexomyway.net/v0.2/data/menu/{location_id}/{site_id}"
+        
+        # Make the API request
+        response = requests.get(
+            url,
+            params={'date': date_str},
+            headers={'API-Key': api_key}
+        )
+        
+        # Check if request was successful
+        response.raise_for_status()
+        raw_menu_data = response.json()
+        
+        if not raw_menu_data:
+            return None
+        
+        # Create the clean menu document
+        menu_doc = {
+            'date': date_str,
+            'meals': []
+        }
+        
+        # Loop through all meals (Breakfast, Lunch, Dinner)
+        for meal in raw_menu_data:
+            new_meal = {
+                'name': meal.get('name', ''),
+                'stations': []
+            }
+            
+            # Loop through all stations (Grill, Savory, Deli, etc.)
+            for station in meal.get('groups', []):
+                new_station = {
+                    'name': station.get('name', ''),
+                    'items': []
+                }
+                
+                # Loop through all food items at this station
+                for item in station.get('items', []):
+                    menu_item_id = item.get('menuItemId')
+                    
+                    # Add item with detailed information
+                    new_station['items'].append({
+                        'id': menu_item_id,
+                        'name': item.get('formalName', ''),
+                        'description': item.get('description', ''),
+                        'ingredients': item.get('ingredients', ''),
+                        'allergens': [allergen.get('name', '') for allergen in item.get('allergens', [])],
+                        'isVegan': item.get('isVegan', False),
+                        'isVegetarian': item.get('isVegetarian', False),
+                        'nutrition': {
+                            'calories': item.get('calories', 'N/A'),
+                            'protein': item.get('protein', 'N/A'),
+                            'fat': item.get('fat', 'N/A'),
+                            'carbohydrates': item.get('carbohydrates', 'N/A'),
+                            'sugar': item.get('sugar', 'N/A'),
+                            'sodium': item.get('sodium', 'N/A')
+                        }
+                    })
+                
+                new_meal['stations'].append(new_station)
+            
+            menu_doc['meals'].append(new_meal)
+        
+        return menu_doc
+        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ API Request Error: {e}")
+        return None
+    except Exception as e:
+        print(f"❌ An error occurred: {e}")
+        return None
 
 
 @app.route('/')
@@ -31,7 +117,8 @@ def home():
     """Health check endpoint"""
     return jsonify({
         'message': 'FiskEat API is running!',
-        'version': '1.0.0',
+        'version': '2.0.0',
+        'description': 'Dynamic menu fetching - no database required',
         'endpoints': {
             'menu_today': '/api/menu/today',
             'menu_by_date': '/api/menu/<date>',
@@ -47,18 +134,16 @@ def get_todays_menu():
         # Get today's date
         today = datetime.now().strftime('%Y-%m-%d')
         
-        # Fetch from Firestore
-        menu_ref = db.collection('menus').document(today)
-        menu_doc = menu_ref.get()
+        # Fetch menu dynamically from Sodexo API
+        menu_data = fetch_menu_from_sodexo(today)
         
-        if not menu_doc.exists:
+        if menu_data is None:
             return jsonify({
                 'error': 'No menu found for today',
                 'date': today,
-                'message': 'Menu may not have been fetched yet. Try running the fetch script.'
+                'message': 'Menu may not be available for this date.'
             }), 404
         
-        menu_data = menu_doc.to_dict()
         return jsonify({
             'success': True,
             'date': today,
@@ -82,17 +167,15 @@ def get_menu_by_date(date):
         # Validate date format
         datetime.strptime(date, '%Y-%m-%d')
         
-        # Fetch from Firestore
-        menu_ref = db.collection('menus').document(date)
-        menu_doc = menu_ref.get()
+        # Fetch menu dynamically from Sodexo API
+        menu_data = fetch_menu_from_sodexo(date)
         
-        if not menu_doc.exists:
+        if menu_data is None:
             return jsonify({
                 'error': 'No menu found for this date',
                 'date': date
             }), 404
         
-        menu_data = menu_doc.to_dict()
         return jsonify({
             'success': True,
             'date': date,
@@ -115,21 +198,40 @@ def get_menu_by_date(date):
 def get_food_item(item_id):
     """Get detailed information about a specific food item"""
     try:
-        # Fetch from Firestore
-        food_ref = db.collection('foodItems').document(item_id)
-        food_doc = food_ref.get()
+        # Get today's menu to search for the item
+        today = datetime.now().strftime('%Y-%m-%d')
+        menu_data = fetch_menu_from_sodexo(today)
         
-        if not food_doc.exists:
+        if menu_data is None:
             return jsonify({
-                'error': 'Food item not found',
-                'item_id': item_id
+                'error': 'Menu not available',
+                'message': 'Cannot fetch food item - menu is not available'
             }), 404
         
-        food_data = food_doc.to_dict()
+        # Search for the item in the menu
+        food_item = None
+        for meal in menu_data.get('meals', []):
+            for station in meal.get('stations', []):
+                for item in station.get('items', []):
+                    if str(item.get('id')) == str(item_id):
+                        food_item = item
+                        break
+                if food_item:
+                    break
+            if food_item:
+                break
+        
+        if food_item is None:
+            return jsonify({
+                'error': 'Food item not found',
+                'item_id': item_id,
+                'message': 'Item not found in today\'s menu'
+            }), 404
+        
         return jsonify({
             'success': True,
             'item_id': item_id,
-            'food': food_data
+            'food': food_item
         })
         
     except Exception as e:
@@ -139,28 +241,6 @@ def get_food_item(item_id):
         }), 500
 
 
-@app.route('/api/menu/available-dates', methods=['GET'])
-def get_available_dates():
-    """Get list of dates that have menus available"""
-    try:
-        # Get all menu documents
-        menus_ref = db.collection('menus')
-        docs = menus_ref.stream()
-        
-        dates = [doc.id for doc in docs]
-        dates.sort(reverse=True)  # Most recent first
-        
-        return jsonify({
-            'success': True,
-            'dates': dates,
-            'count': len(dates)
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'error': 'Failed to fetch available dates',
-            'message': str(e)
-        }), 500
 
 
 # Error handlers
