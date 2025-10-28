@@ -3,11 +3,13 @@ FiskEat Flask Backend API
 Main application file
 """
 import os
+import json
 from datetime import datetime
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 import requests
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
@@ -15,6 +17,32 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
+
+# Configure Google Gemini API
+api_key = os.getenv('GOOGLE_GEMINI_API_KEY')
+if not api_key:
+    raise ValueError("GOOGLE_GEMINI_API_KEY not found in environment variables")
+genai.configure(api_key=api_key)
+
+# Define system prompt for concise, direct responses
+SYSTEM_PROMPT = """You are a fast and helpful AI assistant for Fisk University's Spence Food Hall.
+Your #1 priority is to give **concise, scannable, and direct answers**. Students are busy and want to know what to get.
+
+**RULES:**
+1.  **Be Direct:** Get straight to the answer. Do NOT use conversational fillers like "Hey there!", "Absolutely!", or "That's a super smart goal!".
+2.  **Use Bullet Points:** Always use lists for meal plans or food items.
+3.  **Be Specific, Not Wordy:** Just list the food. Don't add long explanations about *why* it's a good choice unless asked.
+4.  **No Generic Advice:** Do NOT give general health tips (like "drink water" or "portion control"). Stick only to the menu items.
+
+**Good Example (for "high protein meal"):**
+* **Lunch:** Balsamic Chicken Breast with a side of Lemony Chickpea Salad."
+
+**Bad Example:**
+"Hey there! That's a great goal. For a high-protein meal, I'd suggest the Balsamic Chicken Breast, which is a fantastic lean protein..."
+"""
+
+# Initialize model with system instruction
+model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=SYSTEM_PROMPT)
 
 
 def fetch_menu_from_sodexo(date_str=None):
@@ -79,6 +107,18 @@ def fetch_menu_from_sodexo(date_str=None):
                 for item in station.get('items', []):
                     menu_item_id = item.get('menuItemId')
                     
+                    # Helper function to strip units from nutrition values
+                    def strip_unit(value):
+                        if isinstance(value, str):
+                            # Remove all units - order matters: mg before g to avoid leaving 'm'
+                            import re
+                            # Remove mg, kg, g in that order to handle all cases
+                            value = re.sub(r'\s*mg\s*', '', value)
+                            value = re.sub(r'\s*kg\s*', '', value)
+                            value = re.sub(r'\s*g\s*', '', value)
+                            return value.strip()
+                        return value
+                    
                     # Add item with detailed information
                     new_station['items'].append({
                         'id': menu_item_id,
@@ -90,11 +130,11 @@ def fetch_menu_from_sodexo(date_str=None):
                         'isVegetarian': item.get('isVegetarian', False),
                         'nutrition': {
                             'calories': item.get('calories', 'N/A'),
-                            'protein': item.get('protein', 'N/A'),
-                            'fat': item.get('fat', 'N/A'),
-                            'carbohydrates': item.get('carbohydrates', 'N/A'),
-                            'sugar': item.get('sugar', 'N/A'),
-                            'sodium': item.get('sodium', 'N/A')
+                            'protein': strip_unit(item.get('protein', 'N/A')),
+                            'fat': strip_unit(item.get('fat', 'N/A')),
+                            'carbohydrates': strip_unit(item.get('carbohydrates', 'N/A')),
+                            'sugar': strip_unit(item.get('sugar', 'N/A')),
+                            'sodium': strip_unit(item.get('sodium', 'N/A'))
                         }
                     })
                 
@@ -237,6 +277,51 @@ def get_food_item(item_id):
     except Exception as e:
         return jsonify({
             'error': 'Failed to fetch food item',
+            'message': str(e)
+        }), 500
+
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """AI Chatbot endpoint using Google Gemini"""
+    try:
+        user_message = request.json.get('message', '')
+        menu_context = request.json.get('menuContext', None)
+        
+        if not user_message:
+            return jsonify({
+                'error': 'No message provided',
+                'message': 'Please provide a message'
+            }), 400
+        
+        # Build the user prompt with menu context
+        full_prompt = f"User question: {user_message}\n"
+        
+        if menu_context:
+            menu_summary = "\nHere is today's menu context:\n"
+            for meal in menu_context.get('meals', []):
+                menu_summary += f"\n{meal['name']}:\n"
+                for station in meal.get('stations', []):
+                    item_names = [item['name'] for item in station.get('items', [])]
+                    menu_summary += f"- {station['name']}: {', '.join(item_names[:5])}\n"
+            
+            full_prompt += menu_summary
+        else:
+            full_prompt += "\nNo specific menu provided."
+        
+        # Call Gemini API
+        # Since system_instruction is set at model initialization, we only pass the user message
+        response = model.generate_content(full_prompt)
+        
+        return jsonify({
+            'success': True,
+            'response': response.text
+        })
+        
+    except Exception as e:
+        print(f"❌ Chat error: {e}")
+        return jsonify({
+            'error': 'Failed to process chat message',
             'message': str(e)
         }), 500
 

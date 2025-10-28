@@ -28,8 +28,10 @@ FiskEat solves the problem of students not having digital access to campus dinin
 - **pytest** for comprehensive testing
 - **Google Gemini API** for AI chatbot (planned)
 
-### Frontend (Planned)
-- **React** with modern hooks
+### Frontend
+- **React 18** with TypeScript
+- **Tailwind CSS** for styling
+- **Vite** for build tooling
 - **Responsive design** for mobile-first experience
 
 ## 📁 Project Structure
@@ -43,7 +45,7 @@ fiskeat/
 │   ├── .env                      # Environment variables (not in git)
 │   └── scripts/
 │       └── fetch_menu.py        # Legacy script (no longer needed)
-├── frontend/                     # React app (to be created)
+├── frontend/                     # React app
 ├── .gitignore
 └── README.md
 ```
@@ -89,6 +91,25 @@ fiskeat/
    ```
 
    The API will be available at `http://localhost:5001`
+
+### Frontend Setup
+
+1. **Navigate to frontend directory**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+   The application will be available at `http://localhost:3000`
 
 ## 📡 API Endpoints
 
@@ -181,11 +202,11 @@ Each API request fetches the menu data fresh from Sodexo, transforms it into a c
 ## 📅 Development Timeline
 
 - **Week 5** (Sep 18): ✅ Core Backend & Data Schema
-- **Week 7** (Oct 2): 🔄 Functional Menu Display (In Progress)
-- **Week 9** (Oct 16): Basic Chatbot Integration
-- **Week 11** (Oct 30): Chatbot Refinement and UI Polish
-- **Week 13** (Nov 13): Final Features and Testing
-- **Week 16** (Dec 4): Final Presentation
+- **Week 7** (Oct 2): ✅ Functional Menu Display with React Frontend
+- **Week 9** (Oct 16): Basic Chatbot Integration (Planned)
+- **Week 11** (Oct 30): Chatbot Refinement and UI Polish (Planned)
+- **Week 13** (Nov 13): Final Features and Testing (Planned)
+- **Week 16** (Dec 4): Final Presentation (Planned)
 
 ## 🧪 Testing
 
