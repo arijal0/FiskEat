@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { API_ENDPOINTS } from '../config/api'
 
 interface ChatResponse {
   success: boolean
@@ -11,7 +12,7 @@ export const sendChatMessage = async (
   menuContext?: any
 ): Promise<ChatResponse> => {
   try {
-    const response = await axios.post('http://localhost:5001/api/chat', {
+    const response = await axios.post(API_ENDPOINTS.CHAT, {
       message,
       menuContext,
     })

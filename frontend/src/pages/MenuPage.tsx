@@ -6,6 +6,7 @@ import ChatBot from '../components/ChatBot'
 import FoodDetailModal from '../components/FoodDetailModal'
 import NutritionCalculator from '../components/NutritionCalculator'
 import { loadSelectedItems, saveSelectedItems, clearSelections, loadNutritionGoals, getDefaultGoals, NutritionGoals } from '../utils/nutritionStorage'
+import { API_ENDPOINTS } from '../config/api'
 
 export interface Nutrition {
   calories: string | number
@@ -63,7 +64,7 @@ function MenuPage() {
     
     try {
       const response = await axios.get(
-        `http://localhost:5001/api/menu/${dateStr}`
+        API_ENDPOINTS.MENU_BY_DATE(dateStr)
       )
       
       if (response.data.success) {

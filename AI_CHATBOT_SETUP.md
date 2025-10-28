@@ -10,12 +10,14 @@ The AI Chatbot feature has been successfully implemented using Google Gemini API
 1. **Install Google Gemini dependency:**
    ```bash
    cd backend
-   pip install google-generativeai==0.3.1
+   pip install -r requirements.txt
+   # This will install google-generativeai==0.8.3 along with other dependencies
    ```
 
-2. **The API key is already configured:**
-   - The API key is set as a default value in `backend/app.py`
-   - You can also set `GOOGLE_GEMINI_API_KEY` in your `.env` file if needed
+2. **Configure environment variables:**
+   - Create or update `.env` file in the `backend/` directory
+   - Add: `GOOGLE_GEMINI_API_KEY=your_api_key_here`
+   - The API key is required for the chatbot to work
 
 3. **Run the backend:**
    ```bash
@@ -123,7 +125,8 @@ The chatbot can:
 ## Troubleshooting
 
 ### Backend Error: "Import google.generativeai could not be resolved"
-- Run: `pip install google-generativeai==0.3.1` in the backend directory
+- Run: `pip install -r requirements.txt` in the backend directory
+- Or manually install: `pip install google-generativeai==0.8.3`
 
 ### Chat not responding
 - Check if backend is running on port 5001

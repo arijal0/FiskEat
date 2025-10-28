@@ -26,7 +26,7 @@ FiskEat solves the problem of students not having digital access to campus dinin
 - **Python 3.x** with Flask
 - **Sodexo API** for dynamic menu data fetching
 - **pytest** for comprehensive testing
-- **Google Gemini API** for AI chatbot (planned)
+- **Google Gemini API** for AI chatbot
 
 ### Frontend
 - **React 18** with TypeScript
@@ -104,12 +104,18 @@ fiskeat/
    npm install
    ```
 
-3. **Start the development server**
+3. **Configure environment variables** (optional)
+   Create a `.env.local` file in the `frontend/` directory:
+   ```env
+   VITE_API_BASE_URL=http://localhost:5001
+   ```
+
+4. **Start the development server**
    ```bash
    npm run dev
    ```
 
-   The application will be available at `http://localhost:3000`
+   The application will be available at `http://localhost:5173` (Vite's default port)
 
 ## 📡 API Endpoints
 
@@ -203,8 +209,8 @@ Each API request fetches the menu data fresh from Sodexo, transforms it into a c
 
 - **Week 5** (Sep 18): ✅ Core Backend & Data Schema
 - **Week 7** (Oct 2): ✅ Functional Menu Display with React Frontend
-- **Week 9** (Oct 16): Basic Chatbot Integration (Planned)
-- **Week 11** (Oct 30): Chatbot Refinement and UI Polish (Planned)
+- **Week 9** (Oct 16): ✅ Basic Chatbot Integration with Google Gemini
+- **Week 11** (Oct 30): ✅ Chatbot Refinement and UI Polish
 - **Week 13** (Nov 13): Final Features and Testing (Planned)
 - **Week 16** (Dec 4): Final Presentation (Planned)
 

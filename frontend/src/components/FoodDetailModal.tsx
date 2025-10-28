@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { API_ENDPOINTS } from '../config/api'
 import { FoodItem as FoodDetail } from '../pages/MenuPage'
 
 interface FoodDetailModalProps {
@@ -23,7 +24,7 @@ function FoodDetailModal({ itemId, onClose }: FoodDetailModalProps) {
     setError(null)
     
     try {
-      const response = await axios.get(`http://localhost:5001/api/food/${id}`)
+      const response = await axios.get(API_ENDPOINTS.FOOD_ITEM(id))
       
       if (response.data.success) {
         setFoodDetail(response.data.food)

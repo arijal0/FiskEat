@@ -152,4 +152,5 @@ PORT=5002
 
 **Version:** 2.0.0  
 **Last Updated:** January 2025
+**Updated Packages:** Flask 3.2.0, python-dotenv 1.2.1, google-generativeai 0.8.3
 
