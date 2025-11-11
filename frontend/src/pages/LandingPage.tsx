@@ -64,7 +64,7 @@ function LandingPage() {
                   <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
                   <path d="M9 9l-1 1.5L7.5 9l1-1.5L9 9z" />
                 </svg>
-                Ask AI Assistant
+                Ask Bulldog AI
               </button>
             </div>
           </div>

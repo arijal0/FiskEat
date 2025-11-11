@@ -42,12 +42,12 @@ npm run dev
 - Reset chat history when closed
 
 ### 2. Menu Page Integration
-- Floating "Ask AI Assistant" button (bottom-right)
+- Floating "Ask Bulldog AI" button (bottom-right)
 - Chatbot opens when button is clicked
-- Auto-opens chat when navigating from landing page with "Ask AI Assistant" button
+- Auto-opens chat when navigating from landing page with "Ask Bulldog AI" button
 
 ### 3. Landing Page Integration
-- "Ask AI Assistant" button next to "Explore Today's Menu"
+- "Ask Bulldog AI" button next to "Explore Today's Menu"
 - Navigates to menu page and auto-opens chatbot
 
 ### 4. Backend Chat Endpoint (`/api/chat`)
@@ -78,11 +78,11 @@ Response:
 ## Usage
 
 1. **From Landing Page:**
-   - Click "Ask AI Assistant" button to navigate to menu page with chat auto-opened
+   - Click "Ask Bulldog AI" button to navigate to menu page with chat auto-opened
    - Or click "Explore Today's Menu" and click the floating button
 
 2. **From Menu Page:**
-   - Click the floating "Ask AI Assistant" button (bottom-right corner)
+   - Click the floating "Ask Bulldog AI" button (bottom-right corner)
    - Chatbot window will appear
 
 3. **Ask questions like:**
@@ -118,7 +118,7 @@ The chatbot can:
 
 3. Test the chatbot:
    - Navigate to landing page
-   - Click "Ask AI Assistant"
+   - Click "Ask Bulldog AI"
    - Ask questions about the menu
    - Try different diet-related queries
 

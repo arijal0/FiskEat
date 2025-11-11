@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type KeyboardEvent } from 'react'
 import { format, addDays } from 'date-fns'
 import axios from 'axios'
 import { useLocation } from 'react-router-dom'
@@ -26,6 +26,7 @@ export interface FoodItem {
   isVegan: boolean
   isVegetarian: boolean
   nutrition: Nutrition
+  isFlagged?: boolean
 }
 
 interface Station {
@@ -41,6 +42,7 @@ interface Meal {
 interface MenuData {
   date: string
   meals: Meal[]
+  activeMeal?: string | null
 }
 
 function MenuPage() {
@@ -55,10 +57,13 @@ function MenuPage() {
   const [selectedItems, setSelectedItems] = useState<FoodItem[]>([])
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
   const [nutritionGoals, setNutritionGoals] = useState<NutritionGoals>(getDefaultGoals())
+  const [flaggingItemId, setFlaggingItemId] = useState<string | null>(null)
+  const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const fetchMenu = async (date: Date) => {
     setLoading(true)
     setError(null)
+    setActionFeedback(null)
     
     const dateStr = format(date, 'yyyy-MM-dd')
     
@@ -107,8 +112,16 @@ function MenuPage() {
   useEffect(() => {
     if (selectedItems.length > 0) {
       saveSelectedItems(selectedItems)
+    } else {
+      clearSelections()
     }
   }, [selectedItems])
+
+  useEffect(() => {
+    if (!actionFeedback) return
+    const timeout = window.setTimeout(() => setActionFeedback(null), 5000)
+    return () => window.clearTimeout(timeout)
+  }, [actionFeedback])
 
   const handleDateChange = (days: number) => {
     setSelectedDate(addDays(selectedDate, days))
@@ -143,6 +156,97 @@ function MenuPage() {
     })
   }
 
+  const isViewingToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+
+  const canFlagMeal = (mealName: string) => {
+    if (!menuData?.activeMeal || !isViewingToday) {
+      return false
+    }
+    return mealName.trim().toLowerCase() === menuData.activeMeal.trim().toLowerCase()
+  }
+
+  const handleToggleFlag = async (mealName: string, item: FoodItem) => {
+    if (!menuData) return
+
+    const mealIsActive = canFlagMeal(mealName)
+    const desiredFlagState = !Boolean(item.isFlagged)
+
+    if (!mealIsActive) {
+      setActionFeedback({
+        type: 'error',
+        message: menuData.activeMeal
+          ? `Flagging is only available during the ${menuData.activeMeal} period.`
+          : 'Flagging is only available during the active meal period for today.',
+      })
+      return
+    }
+
+    setFlaggingItemId(item.id)
+    setActionFeedback(null)
+
+    try {
+      const response = await axios.post(API_ENDPOINTS.FLAG_ITEM, {
+        itemId: item.id,
+        mealName,
+        flag: desiredFlagState,
+      })
+
+      if (response.data?.success) {
+        const isFlagged = Boolean(response.data.isFlagged)
+        setMenuData(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            meals: prev.meals.map(meal => {
+              if (meal.name !== mealName) return meal
+              return {
+                ...meal,
+                stations: meal.stations.map(station => ({
+                  ...station,
+                  items: station.items.map(menuItem =>
+                    menuItem.id === item.id ? { ...menuItem, isFlagged } : menuItem
+                  ),
+                })),
+              }
+            }),
+          }
+        })
+
+        if (isFlagged) {
+          setSelectedItems(prev => prev.filter(selected => selected.id !== item.id))
+        }
+
+        setActionFeedback({
+          type: 'success',
+          message: response.data?.message || `Item ${isFlagged ? 'flagged' : 'unflagged'} for today.`,
+        })
+      } else {
+        setActionFeedback({
+          type: 'error',
+          message: response.data?.message || 'Failed to update flag for this item.',
+        })
+      }
+    } catch (err: unknown) {
+      let message = 'Failed to update flag for this item.'
+      if (axios.isAxiosError(err)) {
+        message = err.response?.data?.message || err.message || message
+      }
+      setActionFeedback({
+        type: 'error',
+        message,
+      })
+    } finally {
+      setFlaggingItemId(null)
+    }
+  }
+
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>, itemId: string) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      setSelectedFoodId(itemId)
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Title and Location */}
@@ -156,51 +260,55 @@ function MenuPage() {
       </div>
 
       {/* Date Picker */}
-      <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => handleDateChange(-7)}
-            className="p-2 hover:bg-gray-100 rounded transition-colors"
-            aria-label="Previous week"
-          >
-            ← Week
-          </button>
-          
-          <button
-            onClick={() => handleDateChange(-1)}
-            className="p-2 hover:bg-gray-100 rounded transition-colors"
-            aria-label="Previous day"
-          >
-            ← Day
-          </button>
+      <div className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div className="flex flex-wrap items-center gap-3 lg:gap-4 justify-between">
+          <div className="order-1 flex w-full justify-between gap-2 sm:order-none sm:w-auto sm:justify-start">
+            <button
+              onClick={() => handleDateChange(-7)}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              aria-label="Previous week"
+            >
+              Prev Week
+            </button>
 
-          <div className="text-center">
+            <button
+              onClick={() => handleDateChange(-1)}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              aria-label="Previous day"
+            >
+              Prev Day
+            </button>
+          </div>
+
+          <div className="order-2 flex-1 text-center sm:order-none">
             <div className="text-lg font-semibold text-gray-900">
               {format(selectedDate, 'EEEE, MMMM d, yyyy')}
             </div>
             <button
               onClick={handleTodayClick}
-              className="text-sm text-blue-600 hover:text-blue-700 mt-1"
+              className="mt-2 inline-flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               Go to today
             </button>
           </div>
 
-          <button
-            onClick={() => handleDateChange(1)}
-            className="p-2 hover:bg-gray-100 rounded transition-colors"
-            aria-label="Next day"
-          >
-            Day →
-          </button>
+          <div className="order-3 flex w-full justify-between gap-2 sm:order-none sm:w-auto sm:justify-end">
+            <button
+              onClick={() => handleDateChange(1)}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              aria-label="Next day"
+            >
+              Next Day
+            </button>
 
-          <button
-            onClick={() => handleDateChange(7)}
-            className="p-2 hover:bg-gray-100 rounded transition-colors"
-            aria-label="Next week"
-          >
-            Week →
-          </button>
+            <button
+              onClick={() => handleDateChange(7)}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              aria-label="Next week"
+            >
+              Next Week
+            </button>
+          </div>
         </div>
       </div>
 
@@ -213,18 +321,44 @@ function MenuPage() {
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-4">
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-4" role="alert">
           {error}
+        </div>
+      )}
+
+      {actionFeedback && (
+        <div
+          className={`${
+            actionFeedback.type === 'success'
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-red-50 border-red-200 text-red-800'
+          } border px-4 py-3 rounded mb-4`}
+          role="status"
+          aria-live="polite"
+        >
+          {actionFeedback.message}
+        </div>
+      )}
+
+      {menuData?.activeMeal && isViewingToday && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-6">
+          Flagging is enabled for the current {menuData.activeMeal} period. Items flagged here stay hidden for the rest of the day.
+        </div>
+      )}
+
+      {!menuData?.activeMeal && isViewingToday && menuData && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6">
+          Flagging is currently unavailable. It opens during the active dining period.
         </div>
       )}
 
       {!loading && menuData && (
         <div className="space-y-4">
           {menuData.meals.map((meal, mealIndex) => (
-            <div key={mealIndex} className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div key={mealIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200">
               <button
                 onClick={() => toggleMeal(mealIndex)}
-                className="w-full bg-gray-100 px-6 py-4 border-b border-gray-200 hover:bg-gray-50 transition-colors flex items-center justify-between"
+                className="w-full bg-gray-50/60 px-6 py-4 border-b border-gray-200 hover:bg-gray-100 transition-colors flex items-center justify-between rounded-t-2xl"
               >
                 <h2 className="text-2xl font-bold text-gray-900">{meal.name}</h2>
                 <svg
@@ -259,58 +393,113 @@ function MenuPage() {
                         {station.items.length === 0 ? (
                           <p className="text-gray-500 italic">No items available at this station.</p>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                             {station.items.map((item) => (
                               <div
                                 key={item.id}
-                                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                                className={`relative flex h-full flex-col rounded-xl border bg-white/80 p-5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                                  item.isFlagged
+                                    ? 'border-red-300 bg-red-50/70 opacity-80'
+                                    : 'border-gray-200 hover:border-blue-200 hover:shadow-lg'
+                                }`}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`View details for ${item.name}`}
                                 onClick={() => setSelectedFoodId(item.id)}
+                                onKeyDown={(event) => handleCardKeyDown(event, item.id)}
                               >
-                                <div className="flex justify-between items-start mb-2">
-                                  <h4 className="font-semibold text-gray-900">{item.name}</h4>
-                                  <div className="flex gap-2">
-                                    {item.isVegetarian && (
-                                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                        V
-                                      </span>
-                                    )}
-                                    {item.isVegan && (
-                                      <span className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded">
-                                        VE
-                                      </span>
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="space-y-1">
+                                    <h4 className="text-lg font-semibold text-gray-900">{item.name}</h4>
+                                    {item.description && (
+                                      <p className="text-sm text-gray-600">{item.description}</p>
                                     )}
                                   </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleToggleFlag(meal.name, item)
+                                    }}
+                                    disabled={!canFlagMeal(meal.name) || flaggingItemId === item.id}
+                                    title={
+                                      canFlagMeal(meal.name)
+                                        ? item.isFlagged
+                                          ? 'Unflag this item for today'
+                                          : 'Flag this item as unavailable for today'
+                                        : 'Flagging is only available during the active meal period.'
+                                    }
+                                    className={`text-xs font-semibold px-3 py-1 rounded-full transition-colors ${
+                                      item.isFlagged
+                                        ? 'bg-red-600 text-white hover:bg-red-700'
+                                        : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                    } ${
+                                      !canFlagMeal(meal.name) || flaggingItemId === item.id
+                                        ? 'opacity-60 cursor-not-allowed'
+                                        : ''
+                                    }`}
+                                  >
+                                    {flaggingItemId === item.id
+                                      ? 'Updating...'
+                                      : item.isFlagged
+                                      ? 'Flagged'
+                                      : 'Flag Item'}
+                                  </button>
                                 </div>
-                                
-                                {item.description && (
-                                  <p className="text-sm text-gray-600 mb-2">{item.description}</p>
+
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                  {item.isVegetarian && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-800">
+                                      <span aria-hidden="true">🌱</span>
+                                      Vegetarian
+                                    </span>
+                                  )}
+                                  {item.isVegan && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 px-2.5 py-1 text-xs font-medium text-teal-800">
+                                      <span aria-hidden="true">🥦</span>
+                                      Vegan
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="mt-4 flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50/80 p-4">
+                                  <div className="flex items-center justify-between text-sm font-semibold text-gray-700">
+                                    <span className="text-blue-600">{item.nutrition.calories} cal</span>
+                                    <span className="text-gray-500">{item.nutrition.protein} g protein</span>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleAddToCalculator(item)
+                                    }}
+                                    disabled={Boolean(item.isFlagged)}
+                                    className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                                      item.isFlagged
+                                        ? 'cursor-not-allowed bg-gray-100 text-gray-400'
+                                        : 'bg-gradient-to-r from-green-600 to-teal-600 text-white hover:from-green-700 hover:to-teal-700'
+                                    }`}
+                                    title={
+                                      item.isFlagged
+                                        ? 'Unavailable items cannot be added to the nutrition calculator.'
+                                        : 'Add to nutrition calculator'
+                                    }
+                                  >
+                                    <span aria-hidden="true">+</span>
+                                    Add to calculator
+                                  </button>
+                                </div>
+
+                                {item.isFlagged && (
+                                  <div className="mt-3 pt-3 border-t border-red-200">
+                                    <p className="text-xs font-semibold text-red-600">
+                                      Flagged as unavailable for the {meal.name} period.
+                                    </p>
+                                  </div>
                                 )}
-                                
-                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                                  <span className="text-sm font-semibold text-blue-600">
-                                    {item.nutrition.calories} cal
-                                  </span>
-                                  <div className="flex items-center gap-2">
-                                    <div className="text-xs text-gray-500">
-                                      {item.nutrition.protein}g protein
-                                    </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleAddToCalculator(item)
-                                      }}
-                                      className="w-6 h-6 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors flex items-center justify-center text-xs font-bold"
-                                      title="Add to nutrition calculator"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                </div>
-                                
+
                                 {item.allergens && item.allergens.length > 0 && (
-                                  <div className="mt-2 pt-2 border-t border-gray-100">
-                                    <p className="text-xs text-gray-500">
-                                      <strong>Allergens:</strong> {item.allergens.join(', ')}
+                                  <div className="mt-4 rounded-lg border border-yellow-100 bg-yellow-50/70 p-3">
+                                    <p className="text-xs font-medium text-yellow-900">
+                                      <span className="font-semibold">Allergens:</span> {item.allergens.join(', ')}
                                     </p>
                                   </div>
                                 )}
@@ -351,7 +540,7 @@ function MenuPage() {
         </button>
       )}
 
-      {/* Floating AI Assistant Button */}
+      {/* Floating Bulldog AI Button */}
       {!isChatOpen && (
         <button
           onClick={() => setIsChatOpen(true)}
@@ -365,7 +554,7 @@ function MenuPage() {
             <div className="absolute top-0 right-0 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
           </div>
           <span className="font-semibold hidden md:block group-hover:scale-105 transition-transform">
-            Ask AI Assistant
+            Ask Bulldog AI
           </span>
         </button>
       )}

@@ -4,12 +4,14 @@ Main application file
 """
 import os
 import json
-from datetime import datetime
+from datetime import datetime, time
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 import requests
 import google.generativeai as genai
+from pathlib import Path
+from threading import Lock
 
 # Load environment variables
 load_dotenv()
@@ -33,6 +35,8 @@ Your #1 priority is to give **concise, scannable, and direct answers**. Students
 2.  **Use Bullet Points:** Always use lists for meal plans or food items.
 3.  **Be Specific, Not Wordy:** Just list the food. Don't add long explanations about *why* it's a good choice unless asked.
 4.  **No Generic Advice:** Do NOT give general health tips (like "drink water" or "portion control"). Stick only to the menu items.
+5.  **Be Proactive (if relevant):** If a user states a goal (e.g., "high protein"), and asks for one meal, suggest a complementary meal. For example, if they ask for a high-protein lunch, also suggest a high-protein dinner option.
+6.  **Use Preferences:** Pay close attention to the user's dietary preferences and allergies provided in the prompt. Always filter your suggestions based on them.
 
 **Good Example (for "high protein meal"):**
 * **Lunch:** Balsamic Chicken Breast with a side of Lemony Chickpea Salad."
@@ -43,6 +47,100 @@ Your #1 priority is to give **concise, scannable, and direct answers**. Students
 
 # Initialize model with system instruction
 model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=SYSTEM_PROMPT)
+
+
+# Flagged items storage configuration
+DATA_DIR = Path(__file__).resolve().parent / 'data'
+FLAGGED_ITEMS_FILE = DATA_DIR / 'flagged_items.json'
+FLAGGED_LOCK = Lock()
+
+MEAL_WINDOWS = {
+    'Breakfast': (time(6, 0), time(10, 30)),
+    'Lunch': (time(10, 30), time(15, 0)),
+    'Dinner': (time(16, 30), time(21, 0)),
+}
+
+MEAL_ALIASES = {
+    'breakfast': 'Breakfast',
+    'lunch': 'Lunch',
+    'dinner': 'Dinner',
+}
+
+
+def ensure_data_dir():
+    """Ensure the data directory and flagged items file exist."""
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if not FLAGGED_ITEMS_FILE.exists():
+        with FLAGGED_LOCK:
+            FLAGGED_ITEMS_FILE.write_text(json.dumps({}), encoding='utf-8')
+
+
+def load_flagged_items():
+    """Load flagged items from disk, cleaning up stale entries."""
+    ensure_data_dir()
+    with FLAGGED_LOCK:
+        try:
+            with FLAGGED_ITEMS_FILE.open('r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            data = {}
+
+        stale_dates = []
+
+        for date_key in list(data.keys()):
+            try:
+                date_obj = datetime.strptime(date_key, '%Y-%m-%d').date()
+            except ValueError:
+                stale_dates.append(date_key)
+                continue
+
+            if date_obj < datetime.now().date():
+                stale_dates.append(date_key)
+
+        for stale_date in stale_dates:
+            data.pop(stale_date, None)
+
+        if stale_dates:
+            with FLAGGED_ITEMS_FILE.open('w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+
+        return data
+
+
+def save_flagged_items(data):
+    """Persist flagged items to disk."""
+    ensure_data_dir()
+    with FLAGGED_LOCK:
+        with FLAGGED_ITEMS_FILE.open('w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+
+
+def normalize_meal_name(meal_name):
+    if not meal_name:
+        return None
+    return MEAL_ALIASES.get(meal_name.strip().lower())
+
+
+def is_time_in_range(start, end, current):
+    if start <= end:
+        return start <= current < end
+    return start <= current or current < end
+
+
+def get_current_meal_period():
+    """Return the active meal name based on current local time."""
+    now = datetime.now().time()
+    for meal_name, (start, end) in MEAL_WINDOWS.items():
+        if is_time_in_range(start, end, now):
+            return meal_name
+    return None
+
+
+def is_meal_active(meal_name):
+    normalized = normalize_meal_name(meal_name)
+    if not normalized:
+        return False
+    return normalized == get_current_meal_period()
 
 
 def fetch_menu_from_sodexo(date_str=None):
@@ -83,10 +181,14 @@ def fetch_menu_from_sodexo(date_str=None):
         if not raw_menu_data:
             return None
         
+        flagged_data = load_flagged_items()
+        date_flags = flagged_data.get(date_str, {})
+
         # Create the clean menu document
         menu_doc = {
             'date': date_str,
-            'meals': []
+            'meals': [],
+            'activeMeal': None
         }
         
         # Loop through all meals (Breakfast, Lunch, Dinner)
@@ -95,6 +197,10 @@ def fetch_menu_from_sodexo(date_str=None):
                 'name': meal.get('name', ''),
                 'stations': []
             }
+
+            meal_normalized = normalize_meal_name(new_meal['name'])
+            meal_flagged_ids = date_flags.get(meal_normalized, []) if meal_normalized else []
+            meal_flagged_id_set = {str(flagged_id) for flagged_id in meal_flagged_ids}
             
             # Loop through all stations (Grill, Savory, Deli, etc.)
             for station in meal.get('groups', []):
@@ -120,6 +226,8 @@ def fetch_menu_from_sodexo(date_str=None):
                         return value
                     
                     # Add item with detailed information
+                    is_flagged = str(menu_item_id) in meal_flagged_id_set
+
                     new_station['items'].append({
                         'id': menu_item_id,
                         'name': item.get('formalName', ''),
@@ -135,12 +243,16 @@ def fetch_menu_from_sodexo(date_str=None):
                             'carbohydrates': strip_unit(item.get('carbohydrates', 'N/A')),
                             'sugar': strip_unit(item.get('sugar', 'N/A')),
                             'sodium': strip_unit(item.get('sodium', 'N/A'))
-                        }
+                        },
+                        'isFlagged': is_flagged
                     })
                 
                 new_meal['stations'].append(new_station)
             
             menu_doc['meals'].append(new_meal)
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        if date_str == today_str:
+            menu_doc['activeMeal'] = get_current_meal_period()
         
         return menu_doc
         
@@ -150,6 +262,19 @@ def fetch_menu_from_sodexo(date_str=None):
     except Exception as e:
         print(f"❌ An error occurred: {e}")
         return None
+
+
+def transform_history_for_gemini(history):
+    """Converts the frontend's history format to the genai format."""
+    gemini_history = []
+    for msg in history:
+        # Map 'assistant' role from frontend to 'model' for genai
+        role = 'model' if msg.get('role') == 'assistant' else 'user'
+        gemini_history.append({
+            'role': role,
+            'parts': [msg.get('content', '')]
+        })
+    return gemini_history
 
 
 @app.route('/')
@@ -162,7 +287,9 @@ def home():
         'endpoints': {
             'menu_today': '/api/menu/today',
             'menu_by_date': '/api/menu/<date>',
-            'food_item': '/api/food/<item_id>'
+            'food_item': '/api/food/<item_id>',
+            'flag_item': '/api/menu/flag',
+            'chat': '/api/chat'
         }
     })
 
@@ -234,6 +361,94 @@ def get_menu_by_date(date):
         }), 500
 
 
+@app.route('/api/menu/flag', methods=['POST'])
+def flag_menu_item():
+    """Flag or unflag a menu item for the current day's active meal period."""
+    try:
+        payload = request.get_json(silent=True) or {}
+        item_id = payload.get('itemId')
+        meal_name = payload.get('mealName')
+        raw_flag = payload.get('flag', True)
+        requested_date = payload.get('date')
+
+        if item_id is None or str(item_id).strip() == '':
+            return jsonify({
+                'error': 'Missing itemId',
+                'message': 'itemId is required to flag a menu item.'
+            }), 400
+
+        if not meal_name:
+            return jsonify({
+                'error': 'Missing mealName',
+                'message': 'mealName is required to flag a menu item.'
+            }), 400
+
+        normalized_meal = normalize_meal_name(meal_name)
+        if normalized_meal is None:
+            return jsonify({
+                'error': 'Invalid mealName',
+                'message': 'mealName must be Breakfast, Lunch, or Dinner.'
+            }), 400
+
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        target_date = requested_date or today_str
+
+        if target_date != today_str:
+            return jsonify({
+                'error': 'Flagging restricted to today',
+                'message': 'Items can only be flagged for today\'s menu.'
+            }), 400
+
+        if not is_meal_active(normalized_meal):
+            return jsonify({
+                'error': 'Flagging unavailable',
+                'message': 'Flagging is only available during the active meal period.',
+                'activeMeal': get_current_meal_period()
+            }), 403
+
+        should_flag = raw_flag
+        if isinstance(raw_flag, str):
+            should_flag = raw_flag.lower() not in {'false', '0', 'no'}
+        else:
+            should_flag = bool(raw_flag)
+
+        flagged_data = load_flagged_items()
+        day_flags = flagged_data.setdefault(today_str, {})
+        meal_flags = set(str(flagged_id) for flagged_id in day_flags.get(normalized_meal, []))
+
+        item_id_str = str(item_id)
+        if should_flag:
+            meal_flags.add(item_id_str)
+        else:
+            meal_flags.discard(item_id_str)
+
+        if meal_flags:
+            day_flags[normalized_meal] = sorted(meal_flags)
+        else:
+            day_flags.pop(normalized_meal, None)
+
+        if not day_flags:
+            flagged_data.pop(today_str, None)
+
+        save_flagged_items(flagged_data)
+
+        return jsonify({
+            'success': True,
+            'itemId': item_id_str,
+            'mealName': normalized_meal,
+            'date': today_str,
+            'isFlagged': item_id_str in meal_flags,
+            'message': f"Item {'flagged' if item_id_str in meal_flags else 'unflagged'} for {normalized_meal}."
+        })
+
+    except Exception as e:
+        print(f"❌ Flag item error: {e}")
+        return jsonify({
+            'error': 'Failed to update item flag',
+            'message': str(e)
+        }), 500
+
+
 @app.route('/api/food/<item_id>', methods=['GET'])
 def get_food_item(item_id):
     """Get detailed information about a specific food item"""
@@ -283,35 +498,74 @@ def get_food_item(item_id):
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    """AI Chatbot endpoint using Google Gemini"""
+    """AI Chatbot endpoint using Google Gemini with conversation history"""
     try:
-        user_message = request.json.get('message', '')
-        menu_context = request.json.get('menuContext', None)
-        
-        if not user_message:
+        data = request.get_json()
+        history = data.get('history', [])
+        menu_context = data.get('menuContext', None)
+        user_preferences = data.get('userPreferences', None)  # New: Get preferences
+
+        if not history:
             return jsonify({
-                'error': 'No message provided',
-                'message': 'Please provide a message'
+                'error': 'No history provided',
+                'message': 'The history array is required with at least one user message.'
+            }), 400
+
+        # Transform all but the last message (which is the new prompt)
+        # for the chat session's history
+        try:
+            gemini_history = transform_history_for_gemini(history[:-1])
+            new_user_message = history[-1].get('content', '')
+        except IndexError:
+            return jsonify({'error': 'Invalid history format'}), 400
+        
+        if not new_user_message:
+            return jsonify({
+                'error': 'No new message in history',
+                'message': 'The last item in the history array must be a user message.'
             }), 400
         
-        # Build the user prompt with menu context
-        full_prompt = f"User question: {user_message}\n"
+        # Build the final prompt with all context
+        final_prompt_string = f"User question: {new_user_message}\n"
         
+        # --- New: Inject User Preferences ---
+        if user_preferences:
+            final_prompt_string += "\n--- MY DIETARY PREFERENCES (Remember these):\n"
+            if user_preferences.get('diet'):
+                final_prompt_string += f"- My Diet: {user_preferences['diet']}\n"
+            if user_preferences.get('allergies'):
+                allergies_list = ", ".join(user_preferences['allergies'])
+                final_prompt_string += f"- My Allergies (Must Avoid): {allergies_list}\n"
+            if user_preferences.get('goals'):
+                final_prompt_string += f"- My Goals: {user_preferences['goals']}\n"
+            final_prompt_string += "---\n"
+        # --- End of Preference Injection ---
+
+        # Inject menu context (same summarization logic as your old code)
         if menu_context:
             menu_summary = "\nHere is today's menu context:\n"
             for meal in menu_context.get('meals', []):
-                menu_summary += f"\n{meal['name']}:\n"
+                menu_summary += f"\n**{meal['name']}**:\n"
                 for station in meal.get('stations', []):
-                    item_names = [item['name'] for item in station.get('items', [])]
-                    menu_summary += f"- {station['name']}: {', '.join(item_names[:5])}\n"
+                    # Get item names, but only if they are not flagged
+                    items = station.get('items', [])
+                    item_names = [item['name'] for item in items if not item.get('isFlagged', False)]
+
+                    if item_names:  # Only show station if it has unflagged items
+                        # Show up to 5 items, add "and more" if truncated
+                        display_items = item_names[:5]
+                        suffix = "..." if len(item_names) > 5 else ""
+                        menu_summary += f"- {station['name']}: {', '.join(display_items)}{suffix}\n"
             
-            full_prompt += menu_summary
+            final_prompt_string += menu_summary
         else:
-            full_prompt += "\nNo specific menu provided."
+            final_prompt_string += "\nNo specific menu provided."
         
-        # Call Gemini API
-        # Since system_instruction is set at model initialization, we only pass the user message
-        response = model.generate_content(full_prompt)
+        # Start the chat session with the past history
+        chat_session = model.start_chat(history=gemini_history)
+        
+        # Send the new, context-rich message
+        response = chat_session.send_message(final_prompt_string)
         
         return jsonify({
             'success': True,

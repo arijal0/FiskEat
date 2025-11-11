@@ -10,5 +10,6 @@ export const API_ENDPOINTS = {
   MENU_BY_DATE: (date: string) => `${API_BASE_URL}/api/menu/${date}`,
   FOOD_ITEM: (id: string) => `${API_BASE_URL}/api/food/${id}`,
   CHAT: `${API_BASE_URL}/api/chat`,
+  FLAG_ITEM: `${API_BASE_URL}/api/menu/flag`,
 }
 

@@ -27,7 +27,7 @@ function Footer() {
               </li>
               <li>
                 <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  AI Assistant
+                  Bulldog AI
                 </a>
               </li>
               <li>

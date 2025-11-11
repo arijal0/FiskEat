@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { sendChatMessage } from '../services/chatService'
+import { sendChatMessage, ChatMessage, UserPreferences } from '../services/chatService'
 import ReactMarkdown from 'react-markdown'
 
-interface Message {
+interface ConversationMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
@@ -14,17 +14,46 @@ interface ChatBotProps {
   menuContext?: any
 }
 
+const USER_PREFERENCES_KEY = 'fisheat_userPreferences'
+
 function ChatBot({ isOpen, onClose, menuContext }: ChatBotProps) {
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<ConversationMessage[]>([
     {
       role: 'assistant',
-      content: "Hi! I'm your AI dining assistant. I can help you with meal suggestions, nutrition advice, and answer questions about today's menu. What would you like to know?",
+      content: "Hi! I'm Bulldog AI, your dining assistant. I can help with meal suggestions, nutrition advice, and questions about today's menu. What would you like to know?",
       timestamp: new Date(),
     },
   ])
+  const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null)
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const getStoredPreferences = (): UserPreferences | null => {
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    try {
+      const stored = localStorage.getItem(USER_PREFERENCES_KEY)
+      if (!stored) {
+        return null
+      }
+
+      const parsed = JSON.parse(stored)
+      if (parsed && typeof parsed === 'object') {
+        return parsed as UserPreferences
+      }
+    } catch (error) {
+      console.warn('Failed to load user preferences:', error)
+    }
+
+    return null
+  }
+
+  useEffect(() => {
+    setUserPreferences(getStoredPreferences())
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
@@ -32,10 +61,11 @@ function ChatBot({ isOpen, onClose, menuContext }: ChatBotProps) {
       setMessages([
         {
           role: 'assistant',
-          content: "Hi! I'm your AI dining assistant. I can help you with meal suggestions, nutrition advice, and answer questions about today's menu. What would you like to know?",
+          content: "Hi! I'm Bulldog AI, your dining assistant. I can help with meal suggestions, nutrition advice, and questions about today's menu. What would you like to know?",
           timestamp: new Date(),
         },
       ])
+      setUserPreferences(getStoredPreferences())
     }
   }, [isOpen])
 
@@ -50,28 +80,34 @@ function ChatBot({ isOpen, onClose, menuContext }: ChatBotProps) {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
 
-    const userMessage: Message = {
+    const userMessage: ConversationMessage = {
       role: 'user',
       content: input,
       timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    const updatedMessages = [...messages, userMessage]
+    setMessages(updatedMessages)
     setInput('')
     setIsLoading(true)
 
     try {
-      const response = await sendChatMessage(input, menuContext)
+      const historyPayload: ChatMessage[] = updatedMessages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }))
+
+      const response = await sendChatMessage(historyPayload, userPreferences, menuContext)
       
       if (response.success && response.response) {
-        const assistantMessage: Message = {
+        const assistantMessage: ConversationMessage = {
           role: 'assistant',
           content: response.response,
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, assistantMessage])
       } else {
-        const errorMessage: Message = {
+        const errorMessage: ConversationMessage = {
           role: 'assistant',
           content: response.response || 'Sorry, I encountered an error. Please try again.',
           timestamp: new Date(),
@@ -80,7 +116,7 @@ function ChatBot({ isOpen, onClose, menuContext }: ChatBotProps) {
       }
     } catch (error) {
       console.error('Chat error:', error)
-      const errorMessage: Message = {
+      const errorMessage: ConversationMessage = {
         role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date(),
@@ -112,7 +148,7 @@ function ChatBot({ isOpen, onClose, menuContext }: ChatBotProps) {
             </svg>
           </div>
           <div>
-            <h3 className="font-semibold">AI Assistant</h3>
+            <h3 className="font-semibold">Bulldog AI</h3>
             <p className="text-xs text-white/80">Ready to help</p>
           </div>
         </div>

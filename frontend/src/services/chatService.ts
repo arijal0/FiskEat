@@ -7,13 +7,26 @@ interface ChatResponse {
   error?: string
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface UserPreferences {
+  diet?: string
+  allergies?: string[]
+  goals?: string
+}
+
 export const sendChatMessage = async (
-  message: string,
+  history: ChatMessage[],
+  userPreferences?: UserPreferences | null,
   menuContext?: any
 ): Promise<ChatResponse> => {
   try {
     const response = await axios.post(API_ENDPOINTS.CHAT, {
-      message,
+      history,
+      userPreferences,
       menuContext,
     })
 
