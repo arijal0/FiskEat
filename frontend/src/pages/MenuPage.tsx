@@ -320,21 +320,21 @@ function MenuPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Title and Location */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
           Spence Food Hall
         </h1>
-        <p className="text-gray-600">
-          Adam K. Spence Hall | <span className="text-blue-600">(615) 329-8791</span>
+        <p className="text-gray-600 dark:text-gray-400">
+          Adam K. Spence Hall | <span className="text-blue-600 dark:text-blue-400">(615) 329-8791</span>
         </p>
       </div>
 
       {/* Date Picker */}
-      <div className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+      <div className="mb-8 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex flex-wrap items-center gap-3 lg:gap-4 justify-between">
           <div className="order-1 flex w-full justify-between gap-2 sm:order-none sm:w-auto sm:justify-start">
             <button
               onClick={() => handleDateChange(-7)}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
               aria-label="Previous week"
             >
               Prev Week
@@ -342,7 +342,7 @@ function MenuPage() {
 
             <button
               onClick={() => handleDateChange(-1)}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
               aria-label="Previous day"
             >
               Prev Day
@@ -350,12 +350,12 @@ function MenuPage() {
           </div>
 
           <div className="order-2 flex-1 text-center sm:order-none">
-            <div className="text-lg font-semibold text-gray-900">
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {format(selectedDate, 'EEEE, MMMM d, yyyy')}
             </div>
             <button
               onClick={handleTodayClick}
-              className="mt-2 inline-flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="mt-2 inline-flex items-center justify-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
             >
               Go to today
             </button>
@@ -364,7 +364,7 @@ function MenuPage() {
           <div className="order-3 flex w-full justify-between gap-2 sm:order-none sm:w-auto sm:justify-end">
             <button
               onClick={() => handleDateChange(1)}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
               aria-label="Next day"
             >
               Next Day
@@ -372,7 +372,7 @@ function MenuPage() {
 
             <button
               onClick={() => handleDateChange(7)}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
               aria-label="Next week"
             >
               Next Week
@@ -382,16 +382,16 @@ function MenuPage() {
       </div>
 
       {/* Filter Panel */}
-      <div className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="mb-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {/* Filter Toggle Button */}
         <button
           onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           aria-expanded={isFilterPanelOpen}
         >
           <div className="flex items-center gap-3">
             <svg
-              className="w-5 h-5 text-gray-600"
+              className="w-5 h-5 text-gray-600 dark:text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -403,7 +403,7 @@ function MenuPage() {
                 d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
               />
             </svg>
-            <span className="text-lg font-semibold text-gray-900">Filters</span>
+            <span className="text-lg font-semibold text-gray-900 dark:text-white">Filters</span>
             {(dietaryFilters.size > 0 || allergenFilters.size > 0) && (
               <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 rounded-full">
                 {dietaryFilters.size + allergenFilters.size}
@@ -411,7 +411,7 @@ function MenuPage() {
             )}
           </div>
           <svg
-            className={`w-5 h-5 text-gray-600 transition-transform ${
+            className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${
               isFilterPanelOpen ? 'rotate-180' : ''
             }`}
             fill="none"
@@ -429,17 +429,17 @@ function MenuPage() {
 
         {/* Filter Panel Content */}
         {isFilterPanelOpen && (
-          <div className="px-6 py-6 border-t border-gray-200 space-y-6">
+          <div className="px-6 py-6 border-t border-gray-200 dark:border-gray-700 space-y-6">
             {/* Dietary Preferences */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Dietary Preferences</h3>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Dietary Preferences</h3>
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => handleToggleDietaryFilter('vegetarian')}
-                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
                     dietaryFilters.has('vegetarian')
-                      ? 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200'
-                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                      ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                   aria-pressed={dietaryFilters.has('vegetarian')}
                 >
@@ -448,10 +448,10 @@ function MenuPage() {
                 </button>
                 <button
                   onClick={() => handleToggleDietaryFilter('vegan')}
-                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
                     dietaryFilters.has('vegan')
-                      ? 'bg-teal-100 border-teal-300 text-teal-800 hover:bg-teal-200'
-                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                      ? 'bg-teal-100 dark:bg-teal-900/30 border-teal-300 dark:border-teal-700 text-teal-800 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-900/50'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                   aria-pressed={dietaryFilters.has('vegan')}
                 >
@@ -464,20 +464,20 @@ function MenuPage() {
             {/* Allergens */}
             {menuData && getAllAllergens().length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
                   Exclude Allergens
                 </h3>
-                <p className="text-xs text-gray-500 mb-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                   Select allergens to exclude from results
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {getAllAllergens().map((allergen) => (
                     <label
                       key={allergen}
-                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 ${
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 dark:focus-within:ring-offset-gray-800 ${
                         allergenFilters.has(allergen)
-                          ? 'bg-red-100 border-red-300 text-red-800 hover:bg-red-200'
-                          : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                          ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50'
+                          : 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       <input
@@ -510,13 +510,13 @@ function MenuPage() {
 
             {/* Clear Filters Button */}
             {(dietaryFilters.size > 0 || allergenFilters.size > 0) && (
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => {
                     setDietaryFilters(new Set())
                     setAllergenFilters(new Set())
                   }}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                  className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   Clear all filters
                 </button>
@@ -529,13 +529,13 @@ function MenuPage() {
       {/* Menu Content */}
       {loading && (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading menu...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading menu...</p>
         </div>
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-4" role="alert">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded mb-4" role="alert">
           {error}
         </div>
       )}
@@ -544,8 +544,8 @@ function MenuPage() {
         <div
           className={`${
             actionFeedback.type === 'success'
-              ? 'bg-green-50 border-green-200 text-green-800'
-              : 'bg-red-50 border-red-200 text-red-800'
+              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
           } border px-4 py-3 rounded mb-4`}
           role="status"
           aria-live="polite"
@@ -555,13 +555,13 @@ function MenuPage() {
       )}
 
       {menuData?.activeMeal && isViewingToday && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-6">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 px-4 py-3 rounded mb-6">
           Flagging is enabled for the current {menuData.activeMeal} period. Items flagged here stay hidden for the rest of the day.
         </div>
       )}
 
       {!menuData?.activeMeal && isViewingToday && menuData && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded mb-6">
           Flagging is currently unavailable. It opens during the active dining period.
         </div>
       )}
@@ -569,14 +569,14 @@ function MenuPage() {
       {!loading && menuData && (
         <div className="space-y-4">
           {menuData.meals.map((meal, mealIndex) => (
-            <div key={mealIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200">
+            <div key={mealIndex} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => toggleMeal(mealIndex)}
-                className="w-full bg-gray-50/60 px-6 py-4 border-b border-gray-200 hover:bg-gray-100 transition-colors flex items-center justify-between rounded-t-2xl"
+                className="w-full bg-gray-50/60 dark:bg-gray-700/60 px-6 py-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between rounded-t-2xl"
               >
-                <h2 className="text-2xl font-bold text-gray-900">{meal.name}</h2>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{meal.name}</h2>
                 <svg
-                  className={`w-6 h-6 text-gray-600 transition-transform ${
+                  className={`w-6 h-6 text-gray-600 dark:text-gray-400 transition-transform ${
                     expandedMeals.has(mealIndex) ? 'rotate-180' : ''
                   }`}
                   fill="none"
@@ -595,28 +595,28 @@ function MenuPage() {
               {expandedMeals.has(mealIndex) && (
               <div className="p-6">
                 {meal.stations.length === 0 ? (
-                  <p className="text-gray-500">No menu available for this meal period.</p>
+                  <p className="text-gray-500 dark:text-gray-400">No menu available for this meal period.</p>
                 ) : (
                   <div className="space-y-6">
                     {meal.stations.map((station, stationIndex) => (
                       <div key={stationIndex}>
-                        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                        <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
                           {station.name}
                         </h3>
                         
                         {(() => {
                           const filteredItems = station.items.filter(matchesDietaryFilter)
                           return filteredItems.length === 0 ? (
-                            <p className="text-gray-500 italic">No items available at this station.</p>
+                            <p className="text-gray-500 dark:text-gray-400 italic">No items available at this station.</p>
                           ) : (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                               {filteredItems.map((item) => (
                               <div
                                 key={item.id}
-                                className={`relative flex h-full flex-col rounded-xl border bg-white/80 p-5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                                className={`relative flex h-full flex-col rounded-xl border bg-white/80 dark:bg-gray-700/80 p-5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
                                   item.isFlagged
-                                    ? 'border-red-300 bg-red-50/70 opacity-80'
-                                    : 'border-gray-200 hover:border-blue-200 hover:shadow-lg'
+                                    ? 'border-red-300 dark:border-red-700 bg-red-50/70 dark:bg-red-900/30 opacity-80'
+                                    : 'border-gray-200 dark:border-gray-600 hover:border-blue-200 dark:hover:border-blue-700 hover:shadow-lg dark:hover:shadow-xl'
                                 }`}
                                 role="button"
                                 tabIndex={0}
@@ -626,9 +626,9 @@ function MenuPage() {
                               >
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="space-y-1">
-                                    <h4 className="text-lg font-semibold text-gray-900">{item.name}</h4>
+                                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{item.name}</h4>
                                     {item.description && (
-                                      <p className="text-sm text-gray-600">{item.description}</p>
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
                                     )}
                                   </div>
                                   <button
@@ -664,23 +664,23 @@ function MenuPage() {
 
                                 <div className="mt-4 flex flex-wrap gap-2">
                                   {item.isVegetarian && (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-800">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-1 text-xs font-medium text-green-800 dark:text-green-300">
                                       <span aria-hidden="true">🌱</span>
                                       Vegetarian
                                     </span>
                                   )}
                                   {item.isVegan && (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 px-2.5 py-1 text-xs font-medium text-teal-800">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 dark:bg-teal-900/30 px-2.5 py-1 text-xs font-medium text-teal-800 dark:text-teal-300">
                                       <span aria-hidden="true">🥦</span>
                                       Vegan
                                     </span>
                                   )}
                                 </div>
 
-                                <div className="mt-4 flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50/80 p-4">
-                                  <div className="flex items-center justify-between text-sm font-semibold text-gray-700">
-                                    <span className="text-blue-600">{item.nutrition.calories} cal</span>
-                                    <span className="text-gray-500">{item.nutrition.protein} g protein</span>
+                                <div className="mt-4 flex flex-col gap-3 rounded-xl border border-gray-100 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-700/50 p-4">
+                                  <div className="flex items-center justify-between text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                    <span className="text-blue-600 dark:text-blue-400">{item.nutrition.calories} cal</span>
+                                    <span className="text-gray-500 dark:text-gray-400">{item.nutrition.protein} g protein</span>
                                   </div>
                                   <button
                                     onClick={(e) => {
@@ -688,9 +688,9 @@ function MenuPage() {
                                       handleAddToCalculator(item)
                                     }}
                                     disabled={Boolean(item.isFlagged)}
-                                    className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                                    className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800 ${
                                       item.isFlagged
-                                        ? 'cursor-not-allowed bg-gray-100 text-gray-400'
+                                        ? 'cursor-not-allowed bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                                         : 'bg-gradient-to-r from-green-600 to-teal-600 text-white hover:from-green-700 hover:to-teal-700'
                                     }`}
                                     title={
@@ -705,16 +705,16 @@ function MenuPage() {
                                 </div>
 
                                 {item.isFlagged && (
-                                  <div className="mt-3 pt-3 border-t border-red-200">
-                                    <p className="text-xs font-semibold text-red-600">
+                                  <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-800">
+                                    <p className="text-xs font-semibold text-red-600 dark:text-red-400">
                                       Flagged as unavailable for the {meal.name} period.
                                     </p>
                                   </div>
                                 )}
 
                                 {item.allergens && item.allergens.length > 0 && (
-                                  <div className="mt-4 rounded-lg border border-yellow-100 bg-yellow-50/70 p-3">
-                                    <p className="text-xs font-medium text-yellow-900">
+                                  <div className="mt-4 rounded-lg border border-yellow-100 dark:border-yellow-800 bg-yellow-50/70 dark:bg-yellow-900/30 p-3">
+                                    <p className="text-xs font-medium text-yellow-900 dark:text-yellow-300">
                                       <span className="font-semibold">Allergens:</span> {item.allergens.join(', ')}
                                     </p>
                                   </div>

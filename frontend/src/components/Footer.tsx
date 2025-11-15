@@ -107,7 +107,7 @@ function Footer() {
         </div>
 
         {/* Copyright Notice */}
-        <div className="mt-12 pt-8 border-t border-gray-800">
+        <div className="mt-12 pt-8 border-t border-gray-800 dark:border-gray-700">
           <p className="text-center text-gray-400 text-sm">
             © 2025 FiskEat. Built with <span className="text-red-500">❤️</span> for Fisk
           </p>
