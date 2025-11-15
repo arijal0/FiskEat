@@ -601,4 +601,4 @@ if __name__ == '__main__':
     print(f"📍 Server running on http://localhost:{port}")
     print(f"🔧 Debug mode: {debug}")
     
-    app.run(debug=debug, port=port, host='0.0.0.0')
+    app.run(debug=False, port=port, host='0.0.0.0')

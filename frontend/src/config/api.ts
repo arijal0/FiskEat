@@ -3,7 +3,10 @@
  * Centralized API endpoint configuration
  */
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  import.meta.env.PROD 
+    ? 'https://fiskeat-backend.onrender.com'  // Your Render URL
+    : 'http://localhost:5001'
 
 export const API_ENDPOINTS = {
   MENU_TODAY: `${API_BASE_URL}/api/menu/today`,
