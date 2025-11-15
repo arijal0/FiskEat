@@ -59,6 +59,9 @@ function MenuPage() {
   const [nutritionGoals, setNutritionGoals] = useState<NutritionGoals>(getDefaultGoals())
   const [flaggingItemId, setFlaggingItemId] = useState<string | null>(null)
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [dietaryFilters, setDietaryFilters] = useState<Set<'vegetarian' | 'vegan'>>(new Set())
+  const [allergenFilters, setAllergenFilters] = useState<Set<string>>(new Set())
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false)
 
   const fetchMenu = async (date: Date) => {
     setLoading(true)
@@ -247,6 +250,72 @@ function MenuPage() {
     }
   }
 
+  const handleToggleDietaryFilter = (filter: 'vegetarian' | 'vegan') => {
+    setDietaryFilters(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(filter)) {
+        newSet.delete(filter)
+      } else {
+        newSet.add(filter)
+      }
+      return newSet
+    })
+  }
+
+  const handleToggleAllergenFilter = (allergen: string) => {
+    setAllergenFilters(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(allergen)) {
+        newSet.delete(allergen)
+      } else {
+        newSet.add(allergen)
+      }
+      return newSet
+    })
+  }
+
+  // Extract all unique allergens from menu data
+  const getAllAllergens = (): string[] => {
+    if (!menuData) return []
+    const allergenSet = new Set<string>()
+    menuData.meals.forEach(meal => {
+      meal.stations.forEach(station => {
+        station.items.forEach(item => {
+          item.allergens?.forEach(allergen => {
+            if (allergen.trim()) {
+              allergenSet.add(allergen.trim())
+            }
+          })
+        })
+      })
+    })
+    return Array.from(allergenSet).sort()
+  }
+
+  const matchesDietaryFilter = (item: FoodItem): boolean => {
+    // Check allergen exclusion first (if item has any selected allergen, exclude it)
+    if (allergenFilters.size > 0) {
+      const itemAllergens = new Set(item.allergens?.map(a => a.trim()) || [])
+      const hasExcludedAllergen = Array.from(allergenFilters).some(allergen => 
+        itemAllergens.has(allergen)
+      )
+      if (hasExcludedAllergen) {
+        return false
+      }
+    }
+
+    // If no dietary filters are selected, show all items (after allergen filtering)
+    if (dietaryFilters.size === 0) {
+      return true
+    }
+
+    // If dietary filters are selected, check if item matches any of them (OR logic)
+    const matchesVegetarian = dietaryFilters.has('vegetarian') && item.isVegetarian
+    const matchesVegan = dietaryFilters.has('vegan') && item.isVegan
+
+    return matchesVegetarian || matchesVegan
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Title and Location */}
@@ -310,6 +379,151 @@ function MenuPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Filter Panel */}
+      <div className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Filter Toggle Button */}
+        <button
+          onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          aria-expanded={isFilterPanelOpen}
+        >
+          <div className="flex items-center gap-3">
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
+            <span className="text-lg font-semibold text-gray-900">Filters</span>
+            {(dietaryFilters.size > 0 || allergenFilters.size > 0) && (
+              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 rounded-full">
+                {dietaryFilters.size + allergenFilters.size}
+              </span>
+            )}
+          </div>
+          <svg
+            className={`w-5 h-5 text-gray-600 transition-transform ${
+              isFilterPanelOpen ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+
+        {/* Filter Panel Content */}
+        {isFilterPanelOpen && (
+          <div className="px-6 py-6 border-t border-gray-200 space-y-6">
+            {/* Dietary Preferences */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Dietary Preferences</h3>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => handleToggleDietaryFilter('vegetarian')}
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                    dietaryFilters.has('vegetarian')
+                      ? 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200'
+                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                  aria-pressed={dietaryFilters.has('vegetarian')}
+                >
+                  <span aria-hidden="true">🌱</span>
+                  Vegetarian
+                </button>
+                <button
+                  onClick={() => handleToggleDietaryFilter('vegan')}
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                    dietaryFilters.has('vegan')
+                      ? 'bg-teal-100 border-teal-300 text-teal-800 hover:bg-teal-200'
+                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                  aria-pressed={dietaryFilters.has('vegan')}
+                >
+                  <span aria-hidden="true">🥦</span>
+                  Vegan
+                </button>
+              </div>
+            </div>
+
+            {/* Allergens */}
+            {menuData && getAllAllergens().length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  Exclude Allergens
+                </h3>
+                <p className="text-xs text-gray-500 mb-3">
+                  Select allergens to exclude from results
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {getAllAllergens().map((allergen) => (
+                    <label
+                      key={allergen}
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 ${
+                        allergenFilters.has(allergen)
+                          ? 'bg-red-100 border-red-300 text-red-800 hover:bg-red-200'
+                          : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={allergenFilters.has(allergen)}
+                        onChange={() => handleToggleAllergenFilter(allergen)}
+                        className="sr-only"
+                      />
+                      <span className="flex items-center gap-1.5">
+                        {allergenFilters.has(allergen) && (
+                          <svg
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                        {allergen}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Clear Filters Button */}
+            {(dietaryFilters.size > 0 || allergenFilters.size > 0) && (
+              <div className="pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setDietaryFilters(new Set())
+                    setAllergenFilters(new Set())
+                  }}
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Menu Content */}
@@ -390,11 +604,13 @@ function MenuPage() {
                           {station.name}
                         </h3>
                         
-                        {station.items.length === 0 ? (
-                          <p className="text-gray-500 italic">No items available at this station.</p>
-                        ) : (
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            {station.items.map((item) => (
+                        {(() => {
+                          const filteredItems = station.items.filter(matchesDietaryFilter)
+                          return filteredItems.length === 0 ? (
+                            <p className="text-gray-500 italic">No items available at this station.</p>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                              {filteredItems.map((item) => (
                               <div
                                 key={item.id}
                                 className={`relative flex h-full flex-col rounded-xl border bg-white/80 p-5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
@@ -504,9 +720,10 @@ function MenuPage() {
                                   </div>
                                 )}
                               </div>
-                            ))}
-                          </div>
-                        )}
+                              ))}
+                            </div>
+                          )
+                        })()}
                       </div>
                     ))}
                   </div>
