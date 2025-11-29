@@ -6,9 +6,11 @@ function Footer() {
           {/* Brand Introduction */}
           <div className="col-span-1 lg:col-span-1">
             <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-                <span className="text-white text-xl">🍽️</span>
-              </div>
+              <img 
+                src="/fiskeatlogo.png" 
+                alt="FiskEat Logo" 
+                className="w-10 h-10 object-contain mr-3"
+              />
               <h3 className="text-xl font-bold">FiskEat</h3>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">

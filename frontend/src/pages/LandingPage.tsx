@@ -17,6 +17,14 @@ function LandingPage() {
         {/* Hero Content */}
         <div className="absolute inset-0 flex items-center justify-center px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
+            {/* Logo */}
+            <div className="mb-8 flex justify-center">
+              <img 
+                src="/fiskeatlogo.png" 
+                alt="FiskEat Logo" 
+                className="w-28 h-28 md:w-36 md:h-36 object-contain drop-shadow-2xl"
+              />
+            </div>
             {/* Main Title */}
             <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight text-white">
               <span>Your Smart</span>
